@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Assistant</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Simple scrollbar styling */
+        #chat-log::-webkit-scrollbar {
+            width: 8px;
+        }
+        #chat-log::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        #chat-log::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        #chat-log::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        .chat-bubble {
+            max-width: 75%;
+        }
+        .user-bubble {
+            background-color: #3b82f6; /* blue-500 */
+            color: white;
+        }
+        .bot-bubble {
+            background-color: #e5e7eb; /* gray-200 */
+            color: #1f2937; /* gray-800 */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+    <div class="flex h-screen flex-col">
+        <!-- Header -->
+        <header class="bg-white shadow-md p-4 flex justify-between items-center">
+            <h1 class="text-xl font-bold text-gray-800">Your Personal Health Assistant</h1>
+            <div class="flex items-center space-x-4">
+                <span class="text-gray-600">Welcome, {{ user.username }}!</span>
+                <a href="{% url 'logout' %}" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition duration-300">Logout</a>
+            </div>
+        </header>
+
+        <!-- Chat Container -->
+        <main class="flex-1 p-4 overflow-y-auto" id="chat-log">
+            <!-- Messages will be appended here by JS -->
+            {% for message in messages %}
+                <div class="flex justify-end mb-4">
+                    <div class="chat-bubble user-bubble rounded-lg p-3">
+                        <p class="text-sm">{{ message.message }}</p>
+                    </div>
+                </div>
+                <div class="flex justify-start mb-4">
+                    <div class="chat-bubble bot-bubble rounded-lg p-3">
+                        <p class="text-sm">{{ message.response|linebreaksbr }}</p>
+                    </div>
+                </div>
+            {% endfor %}
+             <div class="flex justify-start mb-4" id="initial-bot-message">
+                <div class="chat-bubble bot-bubble rounded-lg p-3">
+                    <p class="text-sm">Hello! I'm your personal health assistant. You can ask me health questions, or tell me to log a meal, symptom, or exercise. For example, try saying 'Log that I ate a salad for lunch' or 'I have a headache'.</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- Message Input Form -->
+        <footer class="bg-white p-4 border-t">
+            <form id="chat-form" class="flex items-center space-x-3">
+                <input type="text" id="message-input" placeholder="Type your message here..." autocomplete="off"
+                       class="flex-1 w-full px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+                <button type="submit" id="send-button"
+                        class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-5 rounded-full transition duration-300 flex items-center">
+                    Send
+                    <svg id="send-icon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z" clip-rule="evenodd" /></svg>
+                    <svg id="loading-spinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </button>
+            </form>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const chatLog = document.getElementById('chat-log');
+            const chatForm = document.getElementById('chat-form');
+            const messageInput = document.getElementById('message-input');
+            const sendButton = document.getElementById('send-button');
+            const sendIcon = document.getElementById('send-icon');
+            const loadingSpinner = document.getElementById('loading-spinner');
+            const processMessageUrl = "{% url 'health_assistant:process_message' %}";
+
+            // Scroll to the bottom of the chat log on page load
+            chatLog.scrollTop = chatLog.scrollHeight;
+
+            // Function to add a message to the chat log
+            function addMessage(message, sender) {
+                const messageWrapper = document.createElement('div');
+                const messageBubble = document.createElement('div');
+                const messageText = document.createElement('p');
+
+                messageWrapper.classList.add('flex', 'mb-4');
+                messageBubble.classList.add('chat-bubble', 'rounded-lg', 'p-3');
+                messageText.classList.add('text-sm');
+                
+                // Use linebreaksbr equivalent in JS
+                messageText.innerHTML = message.replace(/\n/g, '<br>');
+
+                if (sender === 'user') {
+                    messageWrapper.classList.add('justify-end');
+                    messageBubble.classList.add('user-bubble');
+                } else {
+                    messageWrapper.classList.add('justify-start');
+                    messageBubble.classList.add('bot-bubble');
+                }
+                
+                messageBubble.appendChild(messageText);
+                messageWrapper.appendChild(messageBubble);
+                chatLog.appendChild(messageWrapper);
+
+                // Scroll to the new message
+                chatLog.scrollTop = chatLog.scrollHeight;
+            }
+            
+            // Handle form submission
+            chatForm.addEventListener('submit', function(event) {
+                event.preventDefault();
+                const userMessage = messageInput.value.trim();
+                if (userMessage === '') return;
+
+                // Hide the initial message if it exists
+                const initialMessage = document.getElementById('initial-bot-message');
+                if (initialMessage) {
+                    initialMessage.style.display = 'none';
+                }
+
+                addMessage(userMessage, 'user');
+                messageInput.value = '';
+                toggleLoading(true);
+
+                // Send the message to the backend
+                fetch(processMessageUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        // Note: Django's CSRF token would normally be included here
+                    },
+                    body: JSON.stringify({ message: userMessage })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.response) {
+                        addMessage(data.response, 'bot');
+                    } else if (data.error) {
+                        addMessage(`Error: ${data.error}`, 'bot');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    addMessage('Sorry, something went wrong. Please check the console and try again.', 'bot');
+                })
+                .finally(() => {
+                    toggleLoading(false);
+                });
+            });
+            
+            function toggleLoading(isLoading) {
+                if (isLoading) {
+                    messageInput.disabled = true;
+                    sendButton.disabled = true;
+                    sendIcon.classList.add('hidden');
+                    loadingSpinner.classList.remove('hidden');
+                } else {
+                    messageInput.disabled = false;
+                    sendButton.disabled = false;
+                    sendIcon.classList.remove('hidden');
+                    loadingSpinner.classList.add('hidden');
+                    messageInput.focus();
+                }
+            }
+        });
+    </script>
+</body>
+</html>
