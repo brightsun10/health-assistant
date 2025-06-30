@@ -120,4 +120,5 @@ MIT License. Free to use and modify.
 
 ## Author
 
+Made with ❤️ by Nithin P (brightsun10)
 
