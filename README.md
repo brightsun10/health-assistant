@@ -40,17 +40,15 @@ Use environment variables for secure config
 
 ## 🏗️ Tech Stack
 
-Layer	Tech
+Backend :	Django 4.2
 
-Backend	Django 4.2
+AI Agent :	Google Gemini (via google-generativeai)
 
-AI Agent	Google Gemini (via google-generativeai)
+DB :	PostgreSQL (or SQLite by default)
 
-DB	PostgreSQL (or SQLite by default)
+Auth :	Django built-in authentication
 
-Auth	Django built-in authentication
-
-Config	python-dotenv + dj-database-url
+Config :	python-dotenv + dj-database-url
 
 ---
 
